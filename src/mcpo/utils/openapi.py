@@ -24,8 +24,6 @@ class OpenAPI(BaseHTTPMiddleware):
             obj['servers'] = [
                 {"url": f'{request.url.scheme}://{request.url.netloc}'},
                 {"url": f'/'},
-                {"url": str(request.url)},
-                {"url": docker_host_url},
             ]
 
             obj['info']['description'] += dedent(
