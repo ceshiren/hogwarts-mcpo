@@ -22,6 +22,7 @@ dependencies = [
 
 [project.scripts]
 mcpo = "mcpo:app"
+hogwarts-mcpo = "mcpo:app"
 
 [build-system]
 requires = ["hatchling"]

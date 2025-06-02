@@ -14,14 +14,18 @@ from mcp.client.stdio import stdio_client
 from mcp.client.streamable_http import streamablehttp_client
 from starlette.routing import Mount
 
-logger = logging.getLogger(__name__)
+from mcpo.utils.openapi import OpenAPI
 
+logger = logging.getLogger(__name__)
 
 from mcpo.utils.main import get_model_fields, get_tool_handler
 from mcpo.utils.auth import get_verify_api_key, APIKeyMiddleware
 
 
-async def create_dynamic_endpoints(app: FastAPI, api_dependency=None):
+async def create_dynamic_endpoints(
+        app: FastAPI,
+        api_dependency=None
+):
     session: ClientSession = app.state.session
     if not session:
         raise ValueError("Session is not initialized in the app state.")
@@ -78,7 +82,9 @@ async def create_dynamic_endpoints(app: FastAPI, api_dependency=None):
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(
+        app: FastAPI
+):
     server_type = getattr(app.state, "server_type", "stdio")
     command = getattr(app.state, "command", None)
     args = getattr(app.state, "args", [])
@@ -88,7 +94,7 @@ async def lifespan(app: FastAPI):
     api_dependency = getattr(app.state, "api_dependency", None)
 
     if (server_type == "stdio" and not command) or (
-        server_type == "sse" and not args[0]
+            server_type == "sse" and not args[0]
     ):
         # Main app lifespan (when config_path is provided)
         async with AsyncExitStack() as stack:
@@ -113,8 +119,8 @@ async def lifespan(app: FastAPI):
                     yield
         if server_type == "sse":
             async with sse_client(url=args[0], sse_read_timeout=None) as (
-                reader,
-                writer,
+                    reader,
+                    writer,
             ):
                 async with ClientSession(reader, writer) as session:
                     app.state.session = session
@@ -128,9 +134,9 @@ async def lifespan(app: FastAPI):
 
             # Connect using streamablehttp_client from the SDK, similar to sse_client
             async with streamablehttp_client(url=url) as (
-                reader,
-                writer,
-                _,  # get_session_id callback not needed for ClientSession
+                    reader,
+                    writer,
+                    _,  # get_session_id callback not needed for ClientSession
             ):
                 async with ClientSession(reader, writer) as session:
                     app.state.session = session
@@ -139,11 +145,11 @@ async def lifespan(app: FastAPI):
 
 
 async def run(
-    host: str = "127.0.0.1",
-    port: int = 8000,
-    api_key: Optional[str] = "",
-    cors_allow_origins=["*"],
-    **kwargs,
+        host: str = "127.0.0.1",
+        port: int = 8000,
+        api_key: Optional[str] = "",
+        cors_allow_origins=["*"],
+        **kwargs,
 ):
     # Server API Key
     api_dependency = get_verify_api_key(api_key) if api_key else None
@@ -161,7 +167,7 @@ async def run(
     # mcpo server
     name = kwargs.get("name") or "MCP OpenAPI Proxy"
     description = (
-        kwargs.get("description") or "Automatically generated API from MCP Tool Schemas"
+            kwargs.get("description") or "Automatically generated API from MCP Tool Schemas"
     )
     version = kwargs.get("version") or "1.0"
 
@@ -202,6 +208,9 @@ async def run(
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+    )
+    main_app.add_middleware(
+        OpenAPI,
     )
 
     # Add middleware to protect also documentation and spec
@@ -253,14 +262,14 @@ async def run(
                     f"  Configuring Stdio MCP Server '{server_name_cfg}' with command: {server_cfg_details['command']}{args_info}"
                 )
             elif server_cfg_details.get("type") == "sse" and server_cfg_details.get(
-                "url"
+                    "url"
             ):
                 logger.info(
                     f"  Configuring SSE MCP Server '{server_name_cfg}' with URL: {server_cfg_details['url']}"
                 )
             elif (
-                server_cfg_details.get("type") == "streamablehttp"
-                or server_cfg_details.get("type") == "streamable_http"
+                    server_cfg_details.get("type") == "streamablehttp"
+                    or server_cfg_details.get("type") == "streamable_http"
             ) and server_cfg_details.get("url"):
                 logger.info(
                     f"  Configuring StreamableHTTP MCP Server '{server_name_cfg}' with URL: {server_cfg_details['url']}"
@@ -303,8 +312,8 @@ async def run(
                 sub_app.state.server_type = "sse"
                 sub_app.state.args = server_cfg["url"]
             elif (
-                server_config_type == "streamablehttp"
-                or server_config_type == "streamable_http"
+                    server_config_type == "streamablehttp"
+                    or server_config_type == "streamable_http"
             ) and server_cfg.get("url"):
                 # Store the URL with trailing slash to avoid redirects
                 url = server_cfg["url"]
@@ -313,7 +322,7 @@ async def run(
                 sub_app.state.server_type = "streamablehttp"
                 sub_app.state.args = url
             elif not server_config_type and server_cfg.get(
-                "url"
+                    "url"
             ):  # Fallback for old SSE config
                 sub_app.state.server_type = "sse"
                 sub_app.state.args = server_cfg["url"]
