@@ -1,4 +1,5 @@
 import json
+from textwrap import dedent
 
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
@@ -18,10 +19,23 @@ class OpenAPI(BaseHTTPMiddleware):
             original_text = original_content.decode("U8")
 
             obj = json.loads(response.render(original_text))
+
+            docker_host_url = str(request.url.replace(hostname='host.docker.internal'))
             obj['servers'] = [
                 {"url": f'{request.url.scheme}://{request.url.netloc}'},
                 {"url": f'/'},
+                {"url": str(request.url)},
+                {"url": docker_host_url},
             ]
+
+            obj['info']['description'] += dedent(
+                f"""
+                
+            for normal url [{str(request.url)}]({str(request.url)})
+            
+            for docker host [{docker_host_url}]({docker_host_url})
+            """
+            )
             new_body = json.dumps(obj)
             new_content = new_body.encode('U8')
             headers = dict(response.headers)
